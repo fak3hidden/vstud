@@ -162,6 +162,17 @@ Rosemary needs Rust 1.99 or newer, and SDL 3.4, FFmpeg and WPE WebKit at runtime
 ### 2 - Build and run
 
 ```bash
+./build.sh
+```
+
+That configures, builds and tells you where the launcher is (`build/ui/stud-ui`).
+`./build.sh --help` lists the rest: `--tests`, `--debug`, `--clean`,
+`--no-rosemary` and `-r` to start it when it is built. Extra CMake flags go in
+`STUD_CMAKE_ARGS`, as the packaging scripts use it.
+
+The same build by hand:
+
+```bash
 cmake -S . -B build -G Ninja
 cmake --build build
 ./build/ui/stud-ui

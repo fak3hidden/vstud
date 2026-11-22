@@ -167,8 +167,14 @@ Rosemary needs Rust 1.99 or newer, and SDL 3.4, FFmpeg and WPE WebKit at runtime
 
 That configures, builds and tells you where the launcher is (`build/ui/stud-ui`).
 `./build.sh --help` lists the rest: `--tests`, `--debug`, `--clean`,
-`--no-rosemary` and `-r` to start it when it is built. Extra CMake flags go in
+`--no-rosemary`, `--rosemary PATH` (install a Rosemary built elsewhere, no Rust
+needed), `--old-qt` and `-r` to start it when it is built. Extra CMake flags go in
 `STUD_CMAKE_ARGS`, as the packaging scripts use it.
+
+Stud is written against Qt 6.9, which is what current distributions ship. A
+distribution behind on Qt (Ubuntu 24.04 and 22.04, Debian 13 and older) is
+refused rather than half-built; `--old-qt` (`-DSTUD_ALLOW_OLD_QT=ON`) tries it
+anyway, and the AppImage or the Flatpak is the answer when that does not work.
 
 The same build by hand:
 

@@ -18,6 +18,10 @@ set(STUD_ROSEMARY_REPOSITORY "https://github.com/CatPieLeaf/rosemary-stud.git" C
     "Git repository Rosemary is built from")
 set(STUD_ROSEMARY_BRANCH "stud" CACHE STRING "Branch of STUD_ROSEMARY_REPOSITORY to build")
 option(STUD_SANITIZE "Build with -fsanitize=address,undefined" OFF)
+# Stud needs Qt 6.9 (the README says so, and 6.9 is what the packages carry). An
+# older Qt is refused rather than half-built; this asks for it anyway, at the
+# user's risk, for testing a build on a distribution behind on Qt.
+option(STUD_ALLOW_OLD_QT "Configure with a Qt older than 6.9 instead of stopping" OFF)
 # Hardening: PIE and full RELRO, which distro build flags normally supply but
 # prebuilt releases don't get (Arch's analyser flags their absence).
 
@@ -67,10 +71,33 @@ set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(AMALGAMATE_SOURCES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(miniz)
 
+# Qt 6.9, though nothing here needs 6.9's private headers: the floor is the API Stud
+# was written and tested against. -DSTUD_ALLOW_OLD_QT=ON tries an older one.
+if(STUD_BUILD_UI OR STUD_BUILD_TESTS)
+    set(STUD_QT_MINIMUM 6.9)
+    if(STUD_ALLOW_OLD_QT)
+        set(STUD_QT_MINIMUM 6.2)
+        message(WARNING
+            "STUD_ALLOW_OLD_QT is on: configuring against Qt older than 6.9. If the "
+            "build or the launcher misbehaves, that is the first thing to suspect.")
+    endif()
+    find_package(Qt6 ${STUD_QT_MINIMUM} REQUIRED COMPONENTS Core Gui Widgets DBus Network)
+endif()
+
 add_subdirectory(stud-config)
 
 # Rosemary (GPL-3.0, compatible with Stud's AGPL-3.0), built with cargo into the
 # build tree where stud-ui finds it, and into libexec/stud on install.
+# A Rosemary someone else built, to install beside the launcher instead of building
+# one: -DSTUD_ROSEMARY_SOURCE_DIR=/path/to/rosemary. Useful without Rust.
+set(STUD_ROSEMARY_SOURCE_DIR "" CACHE FILEPATH
+    "A prebuilt rosemary executable to install instead of building Rosemary")
+if(STUD_ROSEMARY_SOURCE_DIR)
+    install(PROGRAMS "${STUD_ROSEMARY_SOURCE_DIR}"
+            DESTINATION "${STUD_LIBEXEC_DIR}" RENAME rosemary)
+    message(STATUS "Installing the Rosemary at ${STUD_ROSEMARY_SOURCE_DIR} instead of building one")
+endif()
+
 if(STUD_BUILD_ROSEMARY)
     find_program(STUD_CARGO cargo REQUIRED)
     find_package(Git REQUIRED)

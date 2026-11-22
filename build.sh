@@ -10,6 +10,8 @@
 #       --clean           remove the build directory first
 #       --tests           build the tests and run them
 #       --no-rosemary     skip building Rosemary, which needs Rust and network
+#       --rosemary PATH   install a Rosemary built elsewhere instead of building one
+#       --old-qt          try this machine's Qt even if it is older than 6.9
 #   -r, --run             start Stud once it is built
 #   -h, --help            this text
 #
@@ -79,6 +81,8 @@ jobs="$(nproc 2>/dev/null || echo 4)"
 build_type="RelWithDebInfo"
 with_tests=0
 with_rosemary=1
+rosemary_path=""
+allow_old_qt=0
 clean=0
 run_after=0
 
@@ -90,6 +94,8 @@ while [ $# -gt 0 ]; do
         --clean) clean=1; shift ;;
         --tests) with_tests=1; shift ;;
         --no-rosemary) with_rosemary=0; shift ;;
+        --rosemary) [ $# -ge 2 ] || die "$1 needs a path"; rosemary_path="$2"; with_rosemary=0; shift 2 ;;
+        --old-qt) allow_old_qt=1; shift ;;
         -r|--run) run_after=1; shift ;;
         -h|--help) usage; exit 0 ;;
         *) die "unknown option $1 (try --help)" ;;
@@ -177,9 +183,15 @@ fi
 if pkg-config --exists Qt6Core 2>/dev/null; then
     qt_version="$(qt_version_from "$(pkg-config --variable=prefix Qt6Core)")"
     if [ -n "$qt_version" ] && [ "$(printf '%s\n6.9\n' "$qt_version" | sort -V | head -1)" != 6.9 ]; then
-        warn "Qt $qt_version is too old: Stud needs 6.9 or newer"
-        echo "  On Ubuntu 24.04, Mint 22 or Debian 13, use the AppImage or the Flatpak." >&2
-        exit 1
+        if [ "$allow_old_qt" -eq 1 ]; then
+            warn "Qt $qt_version is older than the 6.9 Stud is built against; trying it anyway"
+            warn "if the build or the launcher misbehaves, that is the first thing to suspect"
+        else
+            warn "Qt $qt_version is older than the 6.9 Stud is built against"
+            echo "  It may build anyway: --old-qt tries, or -DSTUD_ALLOW_OLD_QT=ON for cmake." >&2
+            echo "  A release AppImage or the Flatpak is Qt-independent and needs no build." >&2
+            exit 1
+        fi
     fi
 fi
 
@@ -197,6 +209,13 @@ cmake_args=(
     -DSTUD_BUILD_ROSEMARY="$([ "$with_rosemary" -eq 1 ] && echo ON || echo OFF)"
     -DSTUD_BUILD_TESTS="$([ "$with_tests" -eq 1 ] && echo ON || echo OFF)"
 )
+if [ "$allow_old_qt" -eq 1 ]; then
+    cmake_args+=(-DSTUD_ALLOW_OLD_QT=ON)
+fi
+if [ -n "$rosemary_path" ]; then
+    [ -x "$rosemary_path" ] || die "$rosemary_path is not an executable"
+    cmake_args+=(-DSTUD_ROSEMARY_SOURCE_DIR="$(readlink -f "$rosemary_path")")
+fi
 # STUD_CMAKE_ARGS passes extra flags, split as a shell would; unset is empty.
 # shellcheck disable=SC2206
 cmake_args+=(${STUD_CMAKE_ARGS:-})

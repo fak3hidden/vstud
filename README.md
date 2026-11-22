@@ -148,7 +148,7 @@ sudo dnf install cmake ninja-build gcc-c++ git cargo glslc \
 ```bash
 sudo apt install cmake ninja-build build-essential git glslc \
   qt6-base-dev \
-  libgles-dev libcurl4-openssl-dev libssl-dev libsecret-1-dev zlib1g-dev libudev-dev libxkbcommon-dev libsdl3-0 \
+  libgles-dev libcurl4-openssl-dev libssl-dev libsecret-1-dev zlib1g-dev libudev-dev libxkbcommon-dev libsdl3-dev \
   libwpewebkit-2.0-1
 ```
 
